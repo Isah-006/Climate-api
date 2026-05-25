@@ -1,0 +1,36 @@
+{
+  "name": "climate-api",
+  "version": "1.0.0",
+  "description": "API desenvolvida para avaliação de Desenvolvimento Web",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Isah-006/Climate-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Isah-006/Climate-api/issues"
+  },
+  "homepage": "https://github.com/Isah-006/Climate-api#readme",
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "prisma": "^7.8.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
