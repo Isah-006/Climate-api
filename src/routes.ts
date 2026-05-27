@@ -15,8 +15,16 @@ const router = Router();
 router.post('/register', async (req, res) => {
   const { email, senha } = req.body;
 
+  if (!email || !senha) {
+    return res.status(400).json({
+      erro: 'Informe email e senha.',
+    });
+  }
+
   try {
-    const usuarioExiste = await prisma.usuario.findUnique({ where: { email } });
+    const usuarioExiste = await prisma.usuario.findUnique({
+      where: { email },
+    });
 
     if (usuarioExiste) {
       return res.status(400).json({
@@ -37,9 +45,7 @@ router.post('/register', async (req, res) => {
       mensagem: 'Usuário criado com sucesso!',
       usuarioId: novoUsuario.id,
     });
-
   } catch (error) {
-
     console.error(error);
 
     return res.status(500).json({
@@ -48,22 +54,20 @@ router.post('/register', async (req, res) => {
   }
 });
 
-
-// Login
+// ==========================
+// ROTA 2: LOGIN DE USUÁRIO
+// APIDog: POST /login
+// ==========================================
 router.post('/login', async (req, res) => {
+  const { email, senha } = req.body;
 
-  const validacao = loginSchema.safeParse(req.body);
-
-  if (!validacao.success) {
+  if (!email || !senha) {
     return res.status(400).json({
-      erros: validacao.error.format(),
+      erro: 'Informe email e senha.',
     });
   }
 
-  const { email, senha } = validacao.data;
-
   try {
-
     const usuario = await prisma.usuario.findUnique({
       where: { email },
     });
@@ -74,10 +78,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const senhaValida = await bcrypt.compare(
-      senha,
-      usuario.senha
-    );
+    const senhaValida = await bcrypt.compare(senha, usuario.senha);
 
     if (!senhaValida) {
       return res.status(401).json({
@@ -88,18 +89,14 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: usuario.id },
       'senha_secreta_da_faculdade',
-      {
-        expiresIn: '1d',
-      }
+      { expiresIn: '1d' }
     );
 
     return res.json({
       mensagem: 'Login efetuado com sucesso!',
       token,
     });
-
   } catch (error) {
-
     console.error(error);
 
     return res.status(500).json({
@@ -115,12 +112,6 @@ router.post('/login', async (req, res) => {
 // ==========================================
 router.get('/clima/:cidade', autorizarUsuario, async (req, res) => {
   const cidade = String(req.params.cidade);
-
-// Clima
-router.post(
-  '/clima',
-  autorizarUsuario,
-  async (req, res) => {
 
   try {
     const apiKey = process.env.OPENWEATHER_API_KEY;
@@ -160,10 +151,14 @@ router.post(
     );
 
     if (error.response && error.response.status === 404) {
-      return res.status(404).json({ erro: 'Cidade não encontrada.' });
+      return res.status(404).json({
+        erro: 'Cidade não encontrada.',
+      });
     }
 
-    return res.status(500).json({ erro: 'Erro interno ou na API externa.' });
+    return res.status(500).json({
+      erro: 'Erro interno ou na API externa.',
+    });
   }
 });
 
@@ -202,7 +197,11 @@ router.post('/historico', autorizarUsuario, async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ erro: 'Erro interno no servidor.' });
+    console.error(error);
+
+    return res.status(500).json({
+      erro: 'Erro interno no servidor.',
+    });
   }
 });
 
@@ -225,8 +224,12 @@ router.get('/historico', autorizarUsuario, async (req, res) => {
 
     return res.json(historico);
   } catch (error) {
-    return res.status(500).json({ erro: 'Erro interno no servidor.' });
+    console.error(error);
+
+    return res.status(500).json({
+      erro: 'Erro interno no servidor.',
+    });
   }
-);
+});
 
 export default router;
