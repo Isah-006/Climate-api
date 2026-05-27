@@ -98,13 +98,11 @@
             if (!cidade) return alert('Digite uma cidade!');
 
             try {
-                const resposta = await fetch('/clima', {
-                    method: 'POST',
+                const resposta = await fetch(`/clima/${encodeURIComponent(cidade)}`, {
+                    method: 'GET',
                     headers: { 
-                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}` 
-                    },
-                    body: JSON.stringify({ cidade })
+                    }
                 });
 
                 const dados = await resposta.json();
