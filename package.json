@@ -4,10 +4,10 @@
   "description": "API desenvolvida para avaliação de Desenvolvimento Web",
   "main": "index.js",
   "scripts": {
-  "dev": "tsx watch src/server.ts",
-  "start": "tsx src/server.ts",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Isah-006/Climate-api.git"
