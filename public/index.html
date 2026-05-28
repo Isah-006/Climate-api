@@ -13,7 +13,7 @@
             display: flex; 
             align-items: center; 
             justify-content: center;
-            transition: background-color 0.8s ease; /* Transição mais suave */
+            transition: background-color 0.8s ease;
         }
         .container {
             background: white;
@@ -35,7 +35,7 @@
             cursor: pointer; margin-top: 10px;
         }
         button:hover { background-color: #0056b3; }
-        #mensagemErro { color: red; font-size: 14px; margin-top: 10px; }
+        #mensagemErro, #mensagemCadastro { color: red; font-size: 14px; margin-top: 10px; }
         .escondido { display: none; }
         #resultadoClima { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(255, 255, 255, 0.8); }
         #tempDisplay { font-size: 36px; font-weight: bold; margin: 10px 0; }
@@ -45,19 +45,49 @@
 
     <div id="telaLogin" class="container">
         <h2>Acesso ao Dashboard</h2>
+
         <input type="email" id="email" placeholder="Seu e-mail" required>
+
         <input type="password" id="senha" placeholder="Sua senha" required>
+
         <button onclick="fazerLogin()">Entrar</button>
+
+        <button onclick="mostrarCadastro()" style="background-color: #28a745;">
+            Criar Conta
+        </button>
+
         <div id="mensagemErro"></div>
     </div>
+
+
+    <div id="telaCadastro" class="container escondido">
+        <h2>Criar Conta</h2>
+
+        <input type="email" id="cadEmail" placeholder="Seu e-mail">
+
+        <input type="password" id="cadSenha" placeholder="Sua senha">
+
+        <button onclick="criarConta()">Criar Conta</button>
+
+        <button onclick="voltarLogin()" style="background-color: #6c757d;">
+            Voltar
+        </button>
+
+        <div id="mensagemCadastro"></div>
+    </div>
+
 
     <div id="telaDashboard" class="container escondido">
         <h2>🌤️ Clima e Estudos</h2>
         <p>Informe a cidade para receber sua recomendação:</p>
         
         <input type="text" id="cidade" placeholder="Ex: São Paulo, Rio de Janeiro">
+
         <button onclick="buscarClima()">Analisar Clima</button>
-        <button onclick="sair()" style="background-color: #dc3545; margin-top: 10px;">Sair</button>
+
+        <button onclick="sair()" style="background-color: #dc3545; margin-top: 10px;">
+            Sair
+        </button>
 
         <div id="resultadoClima" class="escondido">
             <h3 id="cidadeDisplay"></h3>
@@ -67,84 +97,182 @@
     </div>
 
     <script>
+
+        function mostrarCadastro() {
+            document.getElementById('telaLogin').classList.add('escondido');
+            document.getElementById('telaCadastro').classList.remove('escondido');
+        }
+
+        function voltarLogin() {
+            document.getElementById('telaCadastro').classList.add('escondido');
+            document.getElementById('telaLogin').classList.remove('escondido');
+        }
+
+        async function criarConta() {
+
+            const email = document.getElementById('cadEmail').value;
+            const senha = document.getElementById('cadSenha').value;
+            const mensagem = document.getElementById('mensagemCadastro');
+
+            try {
+
+                const resposta = await fetch('/cadastro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const dados = await resposta.json();
+
+                if (resposta.ok) {
+
+                    mensagem.style.color = 'green';
+                    mensagem.innerText = 'Conta criada com sucesso!';
+
+                    setTimeout(() => {
+                        voltarLogin();
+                    }, 1500);
+
+                } else {
+
+                    mensagem.style.color = 'red';
+                    mensagem.innerText = dados.erro || 'Erro ao criar conta.';
+                }
+
+            } catch {
+
+                mensagem.innerText = 'Erro ao conectar ao servidor.';
+            }
+        }
+
         async function fazerLogin() {
+
             const email = document.getElementById('email').value;
             const senha = document.getElementById('senha').value;
             const divErro = document.getElementById('mensagemErro');
             
             try {
+
                 const resposta = await fetch('/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, senha })
                 });
+
                 const dados = await resposta.json();
+
                 if (resposta.ok) {
+
                     localStorage.setItem('meuToken', dados.token);
+
                     document.getElementById('telaLogin').classList.add('escondido');
+
                     document.getElementById('telaDashboard').classList.remove('escondido');
+
                     divErro.innerText = '';
+
                 } else {
+
                     divErro.innerText = dados.erro || 'Falha no login.';
                 }
-            } catch (erro) {
+
+            } catch {
+
                 divErro.innerText = 'Erro ao conectar ao servidor.';
             }
         }
 
         async function buscarClima() {
-            const cidade = document.getElementById('cidade').value;
-            const token = localStorage.getItem('meuToken');
-            if (!cidade) return alert('Digite uma cidade!');
 
-            try {
-                const resposta = await fetch(`/clima/${encodeURIComponent(cidade)}`, {
-                    method: 'GET',
-                    headers: { 
-                        'Authorization': `Bearer ${token}` 
-                    }
-                });
+    const cidade = document.getElementById('cidade').value;
 
-                const dados = await resposta.json();
+    const token = localStorage.getItem('meuToken');
 
-                if (resposta.ok) {
-                    document.getElementById('resultadoClima').classList.remove('escondido');
-                    document.getElementById('cidadeDisplay').innerText = dados.cidade;
-                    document.getElementById('tempDisplay').innerText = `${dados.temperatura}°C`;
-                    document.getElementById('recDisplay').innerText = dados.recomendacao;
+    if (!cidade) return alert('Digite uma cidade!');
 
-                    // AJUSTE DE CORES CONFORME SOLICITADO
-                    const body = document.body;
-                    if (dados.temperatura >= 30) {
-                        body.style.backgroundColor = '#FF8C00'; // Laranja Forte (Hot)
-                    } else if (dados.temperatura <= 15) {
-                        body.style.backgroundColor = '#ADD8E6'; // Azul Claro (Cold)
-                    } else {
-                        body.style.backgroundColor = '#90EE90'; // Verde (Mild)
-                    }
-                } else {
-                    alert(dados.erro || 'Erro ao buscar clima.');
-                    if(resposta.status === 401) sair();
-                }
-            } catch (erro) {
-                alert('Erro ao conectar ao servidor.');
+    try {
+
+        const resposta = await fetch('/clima', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+
+            body: JSON.stringify({ cidade })
+        });
+
+        const dados = await resposta.json();
+
+        if (resposta.ok) {
+
+            document.getElementById('resultadoClima')
+                .classList.remove('escondido');
+
+            document.getElementById('cidadeDisplay')
+                .innerText = dados.cidade;
+
+            document.getElementById('tempDisplay')
+                .innerText = `${dados.temperatura}°C`;
+
+            document.getElementById('recDisplay')
+                .innerText = dados.recomendacao;
+
+            const body = document.body;
+
+            if (dados.temperatura >= 30) {
+
+                body.style.backgroundColor = '#FF8C00';
+
+            } else if (dados.temperatura <= 15) {
+
+                body.style.backgroundColor = '#ADD8E6';
+
+            } else {
+
+                body.style.backgroundColor = '#90EE90';
             }
+
+        } else {
+
+            alert(dados.erro || 'Erro ao buscar clima.');
+
+            if (resposta.status === 401) sair();
         }
 
+    } catch (erro) {
+
+        alert('Erro ao conectar ao servidor.');
+    }
+}
+
         function sair() {
+
             localStorage.removeItem('meuToken');
+
             document.getElementById('telaDashboard').classList.add('escondido');
+
             document.getElementById('resultadoClima').classList.add('escondido');
+
+            document.getElementById('telaCadastro').classList.add('escondido');
+
             document.getElementById('telaLogin').classList.remove('escondido');
+
             document.body.style.backgroundColor = '#f4f4f9';
         }
 
         window.onload = () => {
+
             if(localStorage.getItem('meuToken')) {
+
                 document.getElementById('telaLogin').classList.add('escondido');
+
                 document.getElementById('telaDashboard').classList.remove('escondido');
             }
         };
+
     </script>
 </body>
 </html>
