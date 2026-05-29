@@ -92,25 +92,36 @@ npx prisma migrate dev
 ### 7. Rode o projeto
 
 ```bash
+npm run dev
+```
+
+Ou, se preferir rodar diretamente com TSX:
+
+```bash
 npx tsx watch src/server.ts
 ```
 
-Após executar o comando, o terminal mostrará o endereço em que o servidor está rodando.
-
-Geralmente, a aplicação fica disponível em:
+Após executar o comando, o servidor ficará disponível em:
 
 ```txt
 http://localhost:3000
 ```
 
-Caso o terminal mostre outra porta, utilize a porta indicada.
+## Scripts disponíveis
+
+| Comando | Descrição |
+|---|---|
+| `npm run dev` | Inicia o servidor em modo desenvolvimento com watch |
+| `npm start` | Inicia o servidor |
+| `npx prisma generate` | Gera/atualiza o Prisma Client |
+| `npx prisma migrate dev` | Executa as migrations do banco de dados |
 
 ## Variáveis de ambiente
 
 | Variável | Descrição |
 |---|---|
-| DATABASE_URL | Define o caminho do banco de dados SQLite |
-| OPENWEATHER_API_KEY | Chave necessária para consumir a API externa OpenWeather |
+| `DATABASE_URL` | Define o caminho do banco de dados SQLite |
+| `OPENWEATHER_API_KEY` | Chave necessária para consumir a API externa OpenWeather |
 
 ## Banco de dados
 
@@ -121,8 +132,36 @@ O Prisma é responsável por mapear as tabelas do banco de dados e facilitar as 
 Principais dados armazenados:
 
 - usuários cadastrados;
-- dados de autenticação;
-- histórico de consultas climáticas.
+- nome, e-mail e senha criptografada dos usuários;
+- histórico de consultas climáticas;
+- cidade, temperatura, condição climática, recomendação e data da consulta.
+
+## Modelos principais do banco
+
+### Usuario
+
+Armazena os dados do usuário cadastrado.
+
+Campos principais:
+
+- `id`
+- `nome`
+- `email`
+- `senha`
+
+### ClimaPesquisado
+
+Armazena o histórico de consultas climáticas realizadas.
+
+Campos principais:
+
+- `id`
+- `cidade`
+- `temperatura`
+- `condicao`
+- `recomendacao`
+- `dataPesquisa`
+- `usuarioId`
 
 ## Endpoints principais
 
@@ -148,6 +187,7 @@ Exemplo de body:
 
 ```json
 {
+  "nome": "Lorena",
   "email": "lorena@email.com",
   "senha": "123456"
 }
@@ -158,9 +198,35 @@ Resposta esperada:
 ```json
 {
   "mensagem": "Usuário criado com sucesso!",
-  "usuarioId": 1
+  "usuario": {
+    "id": 1,
+    "nome": "Lorena",
+    "email": "lorena@email.com"
+  }
 }
 ```
+
+Possíveis erros:
+
+```json
+{
+  "erro": "Este email já está cadastrado."
+}
+```
+
+```json
+{
+  "erros": {
+    "nome": {
+      "_errors": [
+        "O nome deve ter no mínimo 2 caracteres"
+      ]
+    }
+  }
+}
+```
+
+---
 
 ### Login de usuário
 
@@ -186,6 +252,22 @@ Resposta esperada:
 }
 ```
 
+Possíveis erros:
+
+```json
+{
+  "erro": "Usuário não encontrado."
+}
+```
+
+```json
+{
+  "erro": "Senha incorreta."
+}
+```
+
+---
+
 ### Consultar clima por cidade
 
 ```http
@@ -200,6 +282,12 @@ GET /clima/Ribeirão Preto
 
 Essa rota consulta a API externa OpenWeather e retorna os dados climáticos da cidade informada.
 
+Essa rota exige autenticação. O token JWT deve ser enviado no cabeçalho da requisição:
+
+```http
+Authorization: Bearer token_jwt_aqui
+```
+
 Resposta esperada:
 
 ```json
@@ -207,14 +295,45 @@ Resposta esperada:
   "cidade": "Ribeirão Preto",
   "temperatura": 32,
   "condicao": "céu limpo",
-  "recomendacao": "Está muito quente! Beba muita água, ligue o ventilador e faça pausas curtas para estudar."
+  "recomendacao": "Está muito quente! Beba bastante água e faça pausas curtas nos estudos.",
+  "data": "2026-05-25T00:00:00.000Z"
 }
 ```
+
+Possíveis erros:
+
+```json
+{
+  "erro": "Token não fornecido."
+}
+```
+
+```json
+{
+  "erro": "Cidade não encontrada."
+}
+```
+
+```json
+{
+  "erro": "Erro interno ou na API externa."
+}
+```
+
+---
 
 ### Salvar histórico de consulta
 
 ```http
 POST /historico
+```
+
+Essa rota salva manualmente uma consulta climática no histórico do usuário autenticado.
+
+Essa rota exige autenticação. O token JWT deve ser enviado no cabeçalho da requisição:
+
+```http
+Authorization: Bearer token_jwt_aqui
 ```
 
 Exemplo de body:
@@ -223,7 +342,8 @@ Exemplo de body:
 {
   "cidade": "Ribeirão Preto",
   "temperatura": 32,
-  "recomendacao": "Está muito quente! Beba muita água, ligue o ventilador e faça pausas curtas para estudar."
+  "condicao": "Ensolarado",
+  "recomendacao": "Beba água e ligue o ventilador para estudar."
 }
 ```
 
@@ -236,11 +356,28 @@ Resposta esperada:
     "id": 1,
     "cidade": "Ribeirão Preto",
     "temperatura": 32,
-    "recomendacao": "Está muito quente! Beba muita água, ligue o ventilador e faça pausas curtas para estudar.",
+    "condicao": "Ensolarado",
+    "recomendacao": "Beba água e ligue o ventilador para estudar.",
     "data": "2026-05-25T00:00:00.000Z"
   }
 }
 ```
+
+Possíveis erros:
+
+```json
+{
+  "erro": "Token não fornecido."
+}
+```
+
+```json
+{
+  "erro": "Erro interno ao salvar histórico."
+}
+```
+
+---
 
 ### Listar histórico
 
@@ -250,19 +387,41 @@ GET /historico
 
 Essa rota retorna o histórico de consultas climáticas salvas pelo usuário autenticado.
 
+Essa rota exige autenticação. O token JWT deve ser enviado no cabeçalho da requisição:
+
+```http
+Authorization: Bearer token_jwt_aqui
+```
+
 Resposta esperada:
 
 ```json
-[
-  {
-    "id": 1,
-    "cidade": "Ribeirão Preto",
-    "temperatura": 32,
-    "recomendacao": "Está muito quente! Beba muita água, ligue o ventilador e faça pausas curtas para estudar.",
-    "usuarioId": 1,
-    "dataPesquisa": "2026-05-25T00:00:00.000Z"
-  }
-]
+{
+  "historico": [
+    {
+      "id": 1,
+      "cidade": "Ribeirão Preto",
+      "temperatura": 32,
+      "condicao": "Ensolarado",
+      "recomendacao": "Beba água e ligue o ventilador para estudar.",
+      "data": "2026-05-25T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Possíveis erros:
+
+```json
+{
+  "erro": "Token não fornecido."
+}
+```
+
+```json
+{
+  "erro": "Erro interno ao listar histórico."
+}
 ```
 
 ## Autenticação
@@ -271,8 +430,8 @@ O projeto utiliza autenticação com JWT.
 
 Fluxo básico:
 
-1. O usuário realiza o cadastro.
-2. O usuário faz login com e-mail e senha.
+1. O usuário realiza o cadastro em `/register`.
+2. O usuário faz login em `/login` com e-mail e senha.
 3. A API retorna um token JWT.
 4. O token deve ser utilizado para acessar rotas protegidas.
 
@@ -294,23 +453,32 @@ Authorization: Bearer token_jwt_aqui
 
 O projeto consome dados da API OpenWeather para obter informações climáticas de uma cidade.
 
-Com base na temperatura retornada, o sistema gera uma recomendação de estudo, como por exemplo:
+Com base na temperatura retornada, o sistema gera uma recomendação de estudo.
 
-- clima muito quente: recomendação para beber água, ligar o ventilador e fazer pausas curtas;
-- clima agradável: recomendação para manter o foco nos estudos;
-- clima frio: recomendação para escolher um ambiente confortável.
+Exemplos de recomendações:
+
+- clima muito quente: recomendação para beber bastante água e fazer pausas curtas nos estudos;
+- clima agradável: recomendação para manter o foco e bater as metas do dia;
+- clima frio: recomendação para estudar em um ambiente confortável.
 
 ## Frontend
 
 O projeto possui uma interface web simples integrada ao backend.
 
-A página permite consultar uma cidade e exibir informações climáticas, além de alterar o visual conforme a temperatura retornada.
+A página permite:
+
+- criar conta;
+- fazer login;
+- consultar o clima de uma cidade;
+- exibir temperatura, condição climática e recomendação;
+- visualizar o histórico de consultas;
+- alterar o visual da página conforme a temperatura retornada.
 
 Exemplos de comportamento visual:
 
 - temperaturas altas podem alterar o fundo para tons mais quentes;
 - temperaturas baixas podem alterar o fundo para tons mais frios;
-- o frontend pode receber melhorias visuais, como animações de clima.
+- temperaturas agradáveis podem alterar o fundo para tons verdes.
 
 ## Documentação da API
 
@@ -340,6 +508,8 @@ Climate-api/
 │   └── index.html
 │
 ├── src/
+│   ├── schemas/
+│   │   └── userSchema.ts
 │   ├── auth.ts
 │   ├── prismaClient.ts
 │   ├── routes.ts
@@ -359,10 +529,22 @@ O arquivo `.env` não deve ser enviado para o GitHub, pois contém informações
 
 O arquivo `.env.example` deve ser enviado para o GitHub apenas como modelo para configuração do ambiente.
 
-O banco de dados local `dev.db` também não deve ser versionado como parte das alterações locais de teste.
+O banco de dados local `dev.db` não deve ser versionado como parte das alterações locais de teste.
+
+Caso ocorram alterações no `schema.prisma`, é necessário rodar novamente:
+
+```bash
+npx prisma migrate dev
+```
+
+E depois:
+
+```bash
+npx prisma generate
+```
 
 ## Integrantes
 
-- Isabela Souza Oliveira 
+- Isabela Souza Oliveira
 - Gabriel Affonso Lorenz Barboza
 - Lelio Carvalho Soares Neto

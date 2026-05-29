@@ -7,23 +7,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Entidade para Autenticação
 model Usuario {
   id       Int               @id @default(autoincrement())
+  nome     String            @default("")
   email    String            @unique
-  senha    String            // Aqui guardaremos a senha criptografada
-  climas   ClimaPesquisado[] // Relação: Um utilizador pode ter várias pesquisas
+  senha    String
+  climas   ClimaPesquisado[]
 }
 
-// Entidades baseadas na tua ideia de projeto
 model ClimaPesquisado {
   id           Int      @id @default(autoincrement())
   cidade       String
   temperatura  Float
+  condicao     String   @default("")
   recomendacao String
   dataPesquisa DateTime @default(now())
-  
-  // Relação com o utilizador que fez a pesquisa
+
   usuarioId    Int
   usuario      Usuario  @relation(fields: [usuarioId], references: [id])
 }

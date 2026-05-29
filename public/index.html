@@ -63,6 +63,8 @@
     <div id="telaCadastro" class="container escondido">
         <h2>Criar Conta</h2>
 
+        <input type="text" id="cadNome" placeholder="Seu nome">
+
         <input type="email" id="cadEmail" placeholder="Seu e-mail">
 
         <input type="password" id="cadSenha" placeholder="Sua senha">
@@ -85,16 +87,24 @@
 
         <button onclick="buscarClima()">Analisar Clima</button>
 
-        <button onclick="sair()" style="background-color: #dc3545; margin-top: 10px;">
-            Sair
-        </button>
+<button onclick="listarHistorico()" style="background-color: #6f42c1; margin-top: 10px;">
+    Ver Histórico
+</button>
+
+<button onclick="sair()" style="background-color: #dc3545; margin-top: 10px;">
+    Sair
+</button>
 
         <div id="resultadoClima" class="escondido">
-            <h3 id="cidadeDisplay"></h3>
-            <div id="tempDisplay"></div>
-            <p id="recDisplay"></p>
-        </div>
-    </div>
+    <h3 id="cidadeDisplay"></h3>
+    <div id="tempDisplay"></div>
+    <p id="recDisplay"></p>
+</div>
+
+<div id="historicoContainer" class="escondido" style="margin-top: 20px; text-align: left;">
+    <h3>Histórico de consultas</h3>
+    <div id="listaHistorico"></div>
+</div>
 
     <script>
 
@@ -110,40 +120,41 @@
 
         async function criarConta() {
 
-            const email = document.getElementById('cadEmail').value;
-            const senha = document.getElementById('cadSenha').value;
-            const mensagem = document.getElementById('mensagemCadastro');
+    const nome = document.getElementById('cadNome').value;
+    const email = document.getElementById('cadEmail').value;
+    const senha = document.getElementById('cadSenha').value;
+    const mensagem = document.getElementById('mensagemCadastro');
 
-            try {
+    try {
 
-                const resposta = await fetch('/cadastro', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, senha })
-                });
+        const resposta = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, email, senha })
+        });
 
-                const dados = await resposta.json();
+        const dados = await resposta.json();
 
-                if (resposta.ok) {
+        if (resposta.ok) {
 
-                    mensagem.style.color = 'green';
-                    mensagem.innerText = 'Conta criada com sucesso!';
+            mensagem.style.color = 'green';
+            mensagem.innerText = 'Conta criada com sucesso!';
 
-                    setTimeout(() => {
-                        voltarLogin();
-                    }, 1500);
+            setTimeout(() => {
+                voltarLogin();
+            }, 1500);
 
-                } else {
+        } else {
 
-                    mensagem.style.color = 'red';
-                    mensagem.innerText = dados.erro || 'Erro ao criar conta.';
-                }
-
-            } catch {
-
-                mensagem.innerText = 'Erro ao conectar ao servidor.';
-            }
+            mensagem.style.color = 'red';
+            mensagem.innerText = dados.erro || 'Erro ao criar conta.';
         }
+
+    } catch {
+
+        mensagem.innerText = 'Erro ao conectar ao servidor.';
+    }
+}
 
         async function fazerLogin() {
 
@@ -192,16 +203,13 @@
 
     try {
 
-        const resposta = await fetch('/clima', {
+        const resposta = await fetch(`/clima/${encodeURIComponent(cidade)}`, {
 
-            method: 'POST',
+            method: 'GET',
 
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-            },
-
-            body: JSON.stringify({ cidade })
+            }
         });
 
         const dados = await resposta.json();
@@ -218,7 +226,7 @@
                 .innerText = `${dados.temperatura}°C`;
 
             document.getElementById('recDisplay')
-                .innerText = dados.recomendacao;
+                .innerText = `${dados.condicao} - ${dados.recomendacao}`;
 
             const body = document.body;
 
@@ -247,21 +255,79 @@
         alert('Erro ao conectar ao servidor.');
     }
 }
+        async function listarHistorico() {
 
+    const token = localStorage.getItem('meuToken');
+
+    try {
+
+        const resposta = await fetch('/historico', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const dados = await resposta.json();
+
+        if (resposta.ok) {
+
+            const historicoContainer = document.getElementById('historicoContainer');
+            const listaHistorico = document.getElementById('listaHistorico');
+
+            historicoContainer.classList.remove('escondido');
+
+            const historico = Array.isArray(dados) ? dados : dados.historico;
+
+if (!historico || historico.length === 0) {
+    listaHistorico.innerHTML = '<p>Nenhuma consulta encontrada.</p>';
+    return;
+}
+
+listaHistorico.innerHTML = historico.map((item) => {
+                const dataFormatada = new Date(item.data).toLocaleString('pt-BR');
+
+                return `
+                    <div style="border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 10px; background: #f8f9fa;">
+                        <strong>${item.cidade}</strong><br>
+                        Temperatura: ${item.temperatura}°C<br>
+                        Condição: ${item.condicao}<br>
+                        Recomendação: ${item.recomendacao}<br>
+                        <small>Data: ${dataFormatada}</small>
+                    </div>
+                `;
+            }).join('');
+
+        } else {
+
+            alert(dados.erro || 'Erro ao listar histórico.');
+
+            if (resposta.status === 401) sair();
+        }
+
+    } catch (erro) {
+
+        alert('Erro ao conectar ao servidor.');
+    }
+}
         function sair() {
 
-            localStorage.removeItem('meuToken');
+    localStorage.removeItem('meuToken');
 
-            document.getElementById('telaDashboard').classList.add('escondido');
+    document.getElementById('telaDashboard').classList.add('escondido');
 
-            document.getElementById('resultadoClima').classList.add('escondido');
+    document.getElementById('resultadoClima').classList.add('escondido');
 
-            document.getElementById('telaCadastro').classList.add('escondido');
+    document.getElementById('historicoContainer').classList.add('escondido');
 
-            document.getElementById('telaLogin').classList.remove('escondido');
+    document.getElementById('listaHistorico').innerHTML = '';
 
-            document.body.style.backgroundColor = '#f4f4f9';
-        }
+    document.getElementById('telaCadastro').classList.add('escondido');
+
+    document.getElementById('telaLogin').classList.remove('escondido');
+
+    document.body.style.backgroundColor = '#f4f4f9';
+}
 
         window.onload = () => {
 
